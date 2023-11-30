@@ -44,7 +44,18 @@ pipeline {
             }
             post {
                 always {
-                pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+                    pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+                }
+            }
+        }
+        stage('Vulnerability Scan - Docker ') {
+            when { expression { true } }
+            steps {
+                sh "mvn dependency-check:check"
+            }
+            post {
+                always {
+                    dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
                 }
             }
         }
