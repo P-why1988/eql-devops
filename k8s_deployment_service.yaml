@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: devsecops-app
+  name: devsecops-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devsecops-app
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: devsecops-app
+    spec:
+      containers:
+      - image: replace
+        name: eql-devops
+        resources: {}
+status: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: devsecops-app
+  name: devsevcops-svc
+spec:
+  ports:
+  - port: 8180
+    protocol: TCP
+    targetPort: 8180
+  selector:
+    app: devsecops-app
+  type: NodePort
+status:
+  loadBalancer: {}
