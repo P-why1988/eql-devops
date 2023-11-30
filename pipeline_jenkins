@@ -8,6 +8,7 @@ pipeline {
 
     stages {
         stage('Github') {
+            when { expression { true } }
             steps {
                 git(
                     url: "https://github.com/P-why1988/eql-devops.git",
@@ -16,6 +17,7 @@ pipeline {
             }
         }
         stage('Build Artifact') {
+            when { expression { true } }
             steps {
                 echo '-==== Compile and package ====-'
                 sh "mvn clean package -DskipTests=true"
@@ -23,6 +25,7 @@ pipeline {
             }
         }
         stage('Unit-Tests') {
+            when { expression { true } }
             steps {
                 echo '-==== Unit Tests ====-'
                 sh "mvn test"
@@ -35,22 +38,25 @@ pipeline {
             }
         }
         stage('Mutation Tests - PIT') {
-          steps {
-            sh "mvn org.pitest:pitest-maven:mutationCoverage"
-          }
-          post {
-            always {
-              pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+            when { expression { true } }
+            steps {
+                sh "mvn org.pitest:pitest-maven:mutationCoverage"
             }
-          }
+            post {
+                always {
+                pitmutation mutationStatsFile: '**/target/pit-reports/**/mutations.xml'
+                }
+            }
         }
         stage('Docker Build') {
+            when { expression { false } }
             steps {
                 echo '-==== Build Docker Image ====-'
                 sh "docker build -t ${REGISTRY}:${BUILD_NUMBER} ."
             }
         }
         stage('Deploy to Test') {
+            when { expression { false } }
             steps {
                 echo '-==== Deploy to test ====-'
                 echo '--- Run both service docker images ---'
@@ -63,12 +69,14 @@ pipeline {
             }
         }
         stage('Deploy to Prod ?') {
+            when { expression { false } }
             steps {
                 input 'Do you approve deployment?'
                 echo 'Super (if you see me, it means that the question was answered positively. Next steps can happen now.)'
             }
         }
         stage('Push to Docker Hub') {
+            when { expression { false } }
             steps {
                 echo '-==== Push image to Docker Hub ====-'
                 withDockerRegistry([credentialsId: "${REGISTRY_CREDENTIALS}", url: ""]) {
@@ -81,12 +89,14 @@ pipeline {
             }
         }
         stage('Remove local image') {
+            when { expression { false } }
             steps {
                 echo '-==== Remove local image ====-'
                 sh "docker image rm ${REGISTRY}:${BUILD_NUMBER}"
             }
         }
         stage('Kubernetes Deployment - DEV') {
+            when { expression { false } }
             steps {
                 withKubeConfig([credentialsId: 'kubernetes-config']) {
                 sh "sed -i 's#replace#${REGISTRY}:${BUILD_NUMBER}#g' k8s_deployment_service.yaml"
