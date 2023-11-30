@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = "pwhy1988/eql-devops"
+        REGISTRY_CREDENTIALS = "docker-hub"
+    }
+
+    stages {
+        stage('Github') {
+            steps {
+                git(
+                    url: "https://github.com/P-why1988/eql-devops.git",
+                    branch: "main"
+                )
+            }
+        }
+        stage('Build Artifact') {
+            steps {
+                echo '-==== Compile and package ====-'
+                sh "mvn clean package -DskipTests=true"
+                archiveArtifacts 'target/*.jar'
+            }
+        }
+        stage('Unit-Tests') {
+            steps {
+                echo '-==== Unit Tests ====-'
+                sh "mvn test"
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                    jacoco execPattern: 'target/jacoco.exec'
+                }
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                echo '-==== Build Docker Image ====-'
+                sh "docker build -t $REGISTRY:$BUILD_NUMBER ."
+            }
+        }
+        stage('Deploy to Test') {
+            steps {
+                echo '-==== Deploy to test ====-'
+                echo '--- Run both service docker images ---'
+                sh "docker container stop eql-devops || true"
+                sh "docker container stop node-service || true"
+                sh "docker container rm eql-devops || true"
+                sh "docker container rm node-service || true"
+                sh "docker run -d -p 5000:5000 --name=node-service siddharth67/node-service:v1"
+                sh "docker run -d -p 8180:8180 --name=eql-devops eql-devops"
+            }
+        }
+        stage('Deploy to Prod ?') {
+            steps {
+                input 'Do you approve deployment?'
+                echo 'Super (if you see me, it means that the question was answered positively. Next steps can happen now.)'
+            }
+        }
+        stage('Push to Docker Hub') {
+            steps {
+                echo '-==== Push image to Docker Hub ====-'
+                withDockerRegistry([credentialsId: "$REGISTRY_CREDENTIALS", url: ""]) {
+                    sh "docker container stop eql-devops || true"
+                    sh "docker container stop node-service || true"
+                    sh "docker container rm eql-devops || true"
+                    sh "docker container rm node-service || true"
+                    sh "docker push $REGISTRY:$BUILD_NUMBER"
+                }   
+            }
+        }
+        stage('Remove local image') {
+            steps {
+                echo '-==== Remove local image ====-'
+                sh "docker image rm $REGISTRY:$BUILD_NUMBER"
+            }
+        }
+    }
+}
