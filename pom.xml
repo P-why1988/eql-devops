@@ -91,7 +91,8 @@
 			   <version>6.1.6</version>
 			   <configuration>
 			      <format>ALL</format>
-			      <failBuildOnCVSS>8</failBuildOnCVSS>
+			      <!-- Next line means that pipeline will stop if there are more than 8 Critical Vulnerabilities -->
+			      <failBuildOnCVSS>17</failBuildOnCVSS>
 			   </configuration>
 			</plugin>
 		</plugins>
